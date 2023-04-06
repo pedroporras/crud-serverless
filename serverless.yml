@@ -17,6 +17,7 @@ provider:
           Resource: arn:aws:s3:::bucket-crud-serverless-pedroporras/*
   environment:
     BUCKET: bucket-crud-serverless-pedroporras
+    SECRET_EGG: ${ssm:/SECRET_EGG}
 
 plugins:
   - serverless-offline
@@ -42,6 +43,11 @@ custom:
     # noStart: true
 
 functions:
+  custom-authorizer:
+    handler: authorizer/handler.authorize
+    package: 
+      patterns:
+        - "authorizer/handler.js"
   get-users:
     handler: getUsers/handler.getUsers
     package: 
@@ -64,6 +70,8 @@ functions:
         - "createUsers/handler.js"
     events:
       - http:
+          authorizer:
+            name: custom-authorizer
           path: users
           method: POST
           request:
