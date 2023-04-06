@@ -3,12 +3,21 @@ service: crud-serverless-users
 provider:
   name: aws
   runtime: nodejs14.x
+  apiGateway:
+    apiKeys:
+      - crud-serverless-users-apikey
   iam:
     role:
       statements:
         - Effect: Allow
           Action: 'dynamodb:*'
           Resource: arn:aws:dynamodb:us-east-1:346928629658:table/usersTable
+        - Effect: Allow
+          Action: 's3:*'
+          Resource: arn:aws:s3:::bucket-crud-serverless-pedroporras/*
+  environment:
+    BUCKET: bucket-crud-serverless-pedroporras
+    SECRET_EGG: ${ssm:/SECRET_EGG}
 
 plugins:
   - serverless-offline
@@ -34,6 +43,11 @@ custom:
     # noStart: true
 
 functions:
+  custom-authorizer:
+    handler: authorizer/handler.authorize
+    package: 
+      patterns:
+        - "authorizer/handler.js"
   get-users:
     handler: getUsers/handler.getUsers
     package: 
@@ -41,6 +55,7 @@ functions:
         - "getUsers/handler.js"
     events:
       - http:
+          private: true
           path: users/{id}
           method: GET
           request:
@@ -55,6 +70,8 @@ functions:
         - "createUsers/handler.js"
     events:
       - http:
+          authorizer:
+            name: custom-authorizer
           path: users
           method: POST
           request:
@@ -92,6 +109,42 @@ functions:
               paths:
                 id: true
 
+  signedUrl:
+    handler: signedurl/handler.signedUrl
+    package: 
+      patterns:
+        - "signedurl/handler.js"
+    events:
+      - http:
+          path: signedurl
+          method: GET
+          request:
+            parameters:
+              querystrings:
+                filename: true
+
+  thumbGenerator:
+    handler: thumbnail/handler.thumbnailGenerator
+    layers:
+      - { Ref: BaseLambdaLayer}
+    package: 
+      patterns:
+        - "thumbnail/handler.js"
+    events:
+      - s3:
+          bucket: bucket-crud-serverless-pedroporras
+          event: s3:ObjectCreated:*
+          existing: true
+          rules:
+           - prefix: upload/
+
+layers:
+  base:
+    name: "prd-dependencies"
+    compatibleRuntimes:
+      - "nodejs14.x"
+    package:
+      artifact: app/nodejs.zip
 
 resources:
   Resources:
@@ -108,3 +161,25 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 1
           WriteCapacityUnits: 1
+    
+    S3Bucket:
+      Type: 'AWS::S3::Bucket'
+      Properties:
+        AccessControl: PublicRead
+        BucketName: bucket-crud-serverless-pedroporras
+    SampleBucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref S3Bucket
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Action:
+                - 's3:GetObject'
+              Effect: Allow
+              Resource: !Join
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref S3Bucket
+                  - /*
+              Principal: '*'
