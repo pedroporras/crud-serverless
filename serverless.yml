@@ -113,10 +113,11 @@ functions:
 
   thumbGenerator:
     handler: thumbnail/handler.thumbnailGenerator
+    layers:
+      - { Ref: BaseLambdaLayer}
     package: 
       patterns:
         - "thumbnail/handler.js"
-        - "node_modules/**"
     events:
       - s3:
           bucket: bucket-crud-serverless-pedroporras
@@ -125,6 +126,13 @@ functions:
           rules:
            - prefix: upload/
 
+layers:
+  base:
+    name: "prd-dependencies"
+    compatibleRuntimes:
+      - "nodejs14.x"
+    package:
+      artifact: app/nodejs.zip
 
 resources:
   Resources:
