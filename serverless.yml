@@ -119,11 +119,11 @@ functions:
         - "node_modules/**"
     events:
       - s3:
-        bucket: bucket-crud-serverless-pedroporras
-        event: s3:ObjectCreated:*
-        existing: true
-        rules:
-          - prefix: upload/
+          bucket: bucket-crud-serverless-pedroporras
+          event: s3:ObjectCreated:*
+          existing: true
+          rules:
+           - prefix: upload/
 
 
 resources:
