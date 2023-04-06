@@ -9,6 +9,11 @@ provider:
         - Effect: Allow
           Action: 'dynamodb:*'
           Resource: arn:aws:dynamodb:us-east-1:346928629658:table/usersTable
+        - Effect: Allow
+          Action: 's3:*'
+          Resource: arn:aws:s3:::bucket-crud-serverless-pedroporras/*
+  environment:
+    BUCKET: bucket-crud-serverless-pedroporras
 
 plugins:
   - serverless-offline
@@ -91,6 +96,20 @@ functions:
             parameters:
               paths:
                 id: true
+
+  signedUrl:
+    handler: signedurl/handler.signedUrl
+    package: 
+      patterns:
+        - "signedurl/handler.js"
+    events:
+      - http:
+          path: signedurl
+          method: GET
+          request:
+            parameters:
+              querystrings:
+                filename: true
 
 
 resources:
